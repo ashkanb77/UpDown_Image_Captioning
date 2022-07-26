@@ -3,6 +3,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 from config import W, H
 from utils import clean
+import os
 
 
 class VQADataset(Dataset):
@@ -20,7 +21,7 @@ class VQADataset(Dataset):
         img_name = '0' * (12 - len(img_id))
         img_name += img_id
         img_name = self.img_name + img_name + '.jpg'
-        img = Image.open(self.dir + img_name)
+        img = Image.open(os.path.join(self.dir, img_name))
         if img.mode == 'L' or img.mode == 'LA':
             rgbimg = Image.new("RGB", img.size)
             rgbimg.paste(img)

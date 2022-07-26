@@ -2,7 +2,7 @@ import torch
 
 W, H = 256, 256
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-BATCH_SIZE = 128
+BATCH_SIZE = 32
 EPOCHS = 8
 LEARNING_RATE = 0.001
 N_ANS = 8

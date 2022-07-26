@@ -50,15 +50,15 @@ elif args.feature_extractor == 'resnet':
 else:
     net = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
     net = nn.Sequential(*(list(net.children())[:-2])).to(device)
-    V_SIZE = 1280
+    V_SIZE = 576
 
 
 transforms = torchvision.transforms.Compose([
         torchvision.transforms.Resize([W, H]),
-        torchvision.transforms.ToTensor(),
+        torchvision.transforms.RandomCrop(size=(W - 30, H - 30)),
         torchvision.transforms.RandomHorizontalFlip(),
         torchvision.transforms.RandomAffine(degrees=(-15, 15), translate=(0, 0.1), scale=(0.7, 1)),
-        torchvision.transforms.RandomCrop(size=(W - 30, H - 30)),
+        torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize(IMAGE_COLOR_MEAN, IMAGE_COLOR_STD),
     ])
 
@@ -245,7 +245,7 @@ def eval(model, val_dataloader, checkpoint, epoch, lr):
     return total_loss, total_acc
 
 
-os.mkdir('meta_data')
+os.makedirs('meta_data', exist_ok=True)
 with open('meta_data/tokens.pkl', 'wb') as file:
     pickle.dump(tokens, file)
 
@@ -255,3 +255,7 @@ model = UpDown(
 ).to(device)
 optimizer = torch.optim.Adam(model.parameters(), LEARNING_RATE)
 checkpoint = Checkpoint(model, optimizer, args.model_name, args.checkpoint_dir)
+
+train(
+    model, train_dataloader, val_dataloader, checkpoint, optimizer, EPOCHS, LEARNING_RATE
+    )

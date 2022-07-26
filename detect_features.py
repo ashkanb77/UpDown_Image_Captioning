@@ -39,6 +39,6 @@ def detect_features_cnn(net, batch_images, n_features):
         features = net(batch_images).to(device)
         features = avg(features)
         features = features.permute((0, 2, 3, 1))
-        features = features.reshape((n_features, -1))
+        features = features.reshape((batch_images.shape[0], n_features, -1))
 
     return features
