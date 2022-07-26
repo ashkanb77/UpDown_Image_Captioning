@@ -1,58 +1,60 @@
 from torch import nn
 import torch
-
-
-class GatedTanh(nn.Module):
-    def __init__(self, inp_size, out_size):
-        super(GatedTanh, self).__init__()
-        self.l1 = nn.Linear(inp_size, out_size)
-        self.l2 = nn.Linear(inp_size, out_size)
-
-    def forward(self, X):
-        y = torch.tanh(self.l1(X))
-        g = torch.sigmoid(self.l2(X))
-        return y * g
+from config import device
 
 
 class UpDown(nn.Module):
-    def __init__(self, embed_size, hidden_size, img_vec_size, label_size, token_size, pad_index):
+    def __init__(self, embed_size, h1, h2, img_vec_size, mid_lin, token_size, pad_index):
         super(UpDown, self).__init__()
         self.embed_size = embed_size
-        self.hidden_size = hidden_size
         self.img_vec_size = img_vec_size
-        self.label_size = label_size
+        self.mid_lin = mid_lin
         self.token_size = token_size
-        self.pad_index = pad_index
         self.embedding = nn.Embedding(token_size, embed_size, pad_index)
-        self.gru = nn.GRU(embed_size, hidden_size, batch_first=True)
-        self.g1 = GatedTanh(hidden_size + img_vec_size, hidden_size)
-        self.l1 = nn.Linear(hidden_size, 1)
-        self.soft = nn.Softmax(dim=1)
-        self.g2 = GatedTanh(img_vec_size, hidden_size)
-        self.g3 = GatedTanh(hidden_size, hidden_size)
-        self.g4 = GatedTanh(hidden_size, hidden_size)
-        self.l2 = nn.Linear(hidden_size, label_size)
+        self.lstm1 = nn.LSTM(h2+img_vec_size+embed_size, h1)
+        self.lstm2 = nn.LSTM(h1+img_vec_size, h2)
+        self.lv = nn.Linear(img_vec_size, mid_lin)
+        self.lh = nn.Linear(h1, mid_lin)
+        self.attend = nn.Linear(mid_lin, 1)
+        self.linear = nn.Linear(h2, token_size)
+        self.soft = nn.Softmax(dim=0)
+        self.h1_size = h1
+        self.h2_size = h2
 
-    def forward(self, V, Q):
-        Q = self.embedding(Q)
-        o, h = self.gru(Q)
-        h = h[0]
+    def forward(self, V, w, h1, c1, h2, c2):
+        vbar = V.mean(dim=0, keepdim=True)
+        w = self.embedding(w)
+        o, (h1, c1) = self.lstm1(torch.concat((
+            h2.view(1, -1), vbar, w
+        ), dim=1).view(1, 1, -1),
+            (h1, c1)
+        )
 
-        Q = h.unsqueeze(1).repeat(1, V.shape[1], 1)
-        X = torch.concat((V, Q), 2)
-        X = self.g1(X)
-        X = self.l1(X)
-        X = self.soft(X)
+        vt = self.lv(V)
+        h1t = self.lh(h1[0])
+        h1t = h1t.repeat((V.shape[0], 1))
 
-        V = V * X
-        V = V.sum(dim=1)
-        V = self.g2(V)
+        a = torch.tanh(vt + h1t)
+        a = self.attend(a)
+        a = self.soft(a)
 
-        h = self.g3(h)
+        v = a * V
+        v = v.sum(dim=0, keepdim=True)
 
-        X = h * V
-        X = self.g4(X)
-        X = self.l2(X)
+        o, (h2, c2) = self.lstm2(torch.concat((
+            v, h1[0]
+        ), dim=1).view(1, 1, -1),
+            (h2, c2)
+        )
 
-        return X
+        o = self.linear(h2[0])
+
+        return o, h1, c1, h2, c2
+
+    def get_hidden1(self):
+        return torch.zeros((1, 1, self.h1_size)).to(device)
+
+    def get_hidden2(self):
+        return torch.zeros((1, 1, self.h2_size)).to(device)
+
 

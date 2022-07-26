@@ -8,6 +8,6 @@
 ! unzip -q val2014.zip -d 'dataset'
 ! rm 'val2014.zip'
 
-! gdown 1Wo2TqNybszfFgA5izv5X9-BCX64DD-Wz
-! unrar X -Y 'Google.rar' -d 'dataset'
-
+! wget http://images.cocodataset.org/annotations/annotations_trainval2014.zip
+! unzip 'annotations_trainval2014.zip' -d 'dataset'
+! rm 'annotations_trainval2014.zip'

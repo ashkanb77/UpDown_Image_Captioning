@@ -4,7 +4,6 @@ import torch.nn as nn
 
 
 def detect_features_faster_rcnn(faster_rcnn, batch_images, n_features):
-    faster_rcnn.eval()
     features = torch.zeros(batch_images.shape[0], n_features, 256, device=device)
 
     for img_idx, img in enumerate(batch_images):
@@ -34,7 +33,7 @@ def detect_features_faster_rcnn(faster_rcnn, batch_images, n_features):
 
 
 def detect_features_cnn(net, batch_images, n_features):
-    avg = nn.AdaptiveAvgPool2d(n_features // 2)
+    avg = nn.AdaptiveAvgPool2d(int(n_features ** 0.5))
     with torch.no_grad():
         features = net(batch_images).to(device)
         features = avg(features)
