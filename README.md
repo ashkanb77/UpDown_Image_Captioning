@@ -1,4 +1,4 @@
-# UpDown_Persian_VQA
+# UpDown Image Captioning
 
 implementation of Bottom-Up and Top-Down Attention for Image Captioning and Visual Question Answering paper
 
